@@ -1,0 +1,15 @@
+.env
+data/
+runner-data/
+artifacts/
+backups/
+gitea-config/
+
+.idea/
+.vscode/
+
+# helpers
+.ipynb
+__pycache__
+reports/
+public/

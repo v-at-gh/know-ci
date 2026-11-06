@@ -1,0 +1,34 @@
+FROM eclipse-temurin:17-jdk-jammy
+
+LABEL maintainer="v-at-gh"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        unzip \
+        git \
+        ca-certificates \
+        libstdc++6 \
+        zlib1g \
+        gnupg && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV ANDROID_SDK_ROOT=/opt/android-sdk
+ENV ANDROID_HOME=/opt/android-sdk
+ENV PATH="${PATH}:${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools"
+
+RUN mkdir -p ${ANDROID_SDK_ROOT}/cmdline-tools && \
+    curl -sfLo /tmp/cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-15859902_latest.zip && \
+    unzip -q /tmp/cmdline-tools.zip -d ${ANDROID_SDK_ROOT}/cmdline-tools && \
+    mv ${ANDROID_SDK_ROOT}/cmdline-tools/cmdline-tools ${ANDROID_SDK_ROOT}/cmdline-tools/latest && \
+    rm /tmp/cmdline-tools.zip
+
+RUN yes | sdkmanager --licenses > /dev/null 2>&1 || true && \
+    sdkmanager --channel=3 \
+        "platforms;android-37.0" \
+        "build-tools;37.0.0" \
+        "platform-tools"

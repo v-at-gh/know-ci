@@ -1,0 +1,106 @@
+services:
+  gitea:
+    image: gitea/gitea:28.2@sha256:30777c91280d973fa02be48b1ade735bd6859e8f6f7af3b4444d519437852504
+    container_name: know-gitea
+
+    environment:
+      USER_UID: "1000"
+      USER_GID: "1000"
+      GITEA__cache__ENABLED: "true"
+      GITEA__cache__ADAPTER: "memory"
+      GITEA__cache__INTERVAL: "60"
+      GITEA__cache__ITEM_TTL: "48h"
+      GITEA__database__DB_TYPE: sqlite3
+      GITEA__server__DOMAIN: "${KNOW_GITEA_HOST}"
+      GITEA__server__SSH_DOMAIN: "${KNOW_GITEA_HOST}"
+      GITEA__server__SSH_PORT: "${KNOW_GITEA_SSH_PORT}"
+      GITEA__server__ROOT_URL: "http://${KNOW_GITEA_HOST}:${KNOW_GITEA_HTTP_PORT}/"
+      GITEA__server__HTTP_PORT: "3000"
+      GITEA__service__DISABLE_REGISTRATION: "true"
+      GITEA__actions__ENABLED: "true"
+      GITEA__security__INSTALL_LOCK: "true"
+      GITEA__security__SECRET_KEY: "${GITEA_SECRET_KEY}"
+      GITEA__security__INTERNAL_TOKEN: "${GITEA_INTERNAL_TOKEN}"
+    volumes:
+      - ./data:/data
+      - ./gitea-config:/etc/gitea
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "${KNOW_GITEA_HTTP_PORT}:3000"
+      - "${KNOW_GITEA_SSH_PORT}:22"
+    restart: unless-stopped
+
+  gitea-runner:
+    image: gitea/act_runner:0.6.1
+    container_name: know-gitea-runner-linux
+    profiles: ["runner"]
+    environment:
+      CONFIG_FILE: /config/runner-python.yaml
+      GITEA_INSTANCE_URL: "http://gitea:3000"
+      GITEA_RUNNER_REGISTRATION_TOKEN: "${RUNNER_REGISTRATION_TOKEN}"
+      GITEA_RUNNER_NAME: "know-linux"
+    volumes:
+      - ./config/runner-python.yaml:/config/runner-python.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - repo-cache:/root/repo-cache
+      - runner-data:/data
+      - ./artifacts:/data/artifacts
+    depends_on:
+      - gitea
+    restart: unless-stopped
+
+  gitea-runner-android:
+    image: gitea/act_runner:0.6.1
+    container_name: know-gitea-runner-android
+    profiles: ["runner"]
+    environment:
+      CONFIG_FILE: /config/runner-android.yaml
+      GITEA_INSTANCE_URL: "http://gitea:3000"
+      GITEA_RUNNER_REGISTRATION_TOKEN: "${RUNNER_REGISTRATION_TOKEN}"
+      GITEA_RUNNER_NAME: "know-android"
+    volumes:
+      - ./config/runner-android.yaml:/config/runner-android.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - repo-cache:/root/repo-cache
+      - runner-android-data:/data
+      - gradle-cache:/root/.gradle
+      - android-sdk:/opt/android-sdk
+      - ./artifacts:/data/artifacts
+    depends_on:
+      - gitea
+    restart: unless-stopped
+
+  gitea-runner-infra:
+    image: gitea/act_runner:0.6.1
+    container_name: know-gitea-runner-infra
+    profiles: ["runner"]
+    environment:
+      CONFIG_FILE: /config/runner-infra.yaml
+      GITEA_INSTANCE_URL: "http://gitea:3000"
+      GITEA_RUNNER_REGISTRATION_TOKEN: "${RUNNER_REGISTRATION_TOKEN}"
+      GITEA_RUNNER_NAME: "know-infra"
+    volumes:
+      - ./config/runner-infra.yaml:/config/runner-infra.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - repo-cache:/root/repo-cache
+      - runner-infra-data:/data
+      - ./artifacts:/data/artifacts
+    depends_on:
+      - gitea
+    restart: unless-stopped
+
+volumes:
+  runner-data:
+  runner-android-data:
+  runner-infra-data:
+  repo-cache:
+    name: know-ci-repo-cache
+  uv-cache:
+    name: know-ci-uv-cache
+  gradle-cache:
+    name: know-ci-gradle-cache
+  android-sdk:
+    name: know-ci-android-sdk
+  validate-work:
+    name: know-ci-validate

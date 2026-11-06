@@ -1,0 +1,17 @@
+log:
+  level: info
+
+runner:
+  file: /data/.runner
+  capacity: 1
+  labels:
+    - "ubuntu-26.04-android:docker://know-android-runner:latest"
+
+host:
+  workdir_parent: repo-cache
+
+container:
+  network: "know-ci_default"
+  valid_volumes:
+    - "know-ci-gradle-cache"
+    - "know-ci-android-sdk"
